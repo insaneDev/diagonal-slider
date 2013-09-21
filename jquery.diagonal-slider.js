@@ -70,7 +70,20 @@
       return n.getImage();
     };
 
-    Canvas.prototype.drawTitle = function(text, x, y) {
+    Canvas.prototype.canvasApply = function(obj) {
+      (function(context) {
+        var e, i, _results;
+        _results = [];
+        for (e in obj) {
+          i = obj[e];
+          _results.push(context[e] = i);
+        }
+        return _results;
+      })(this.context);
+      return this;
+    };
+
+    Canvas.prototype.drawTitle = function(text, bold, font, size, x, y) {
       var metric, tx, ty;
       if (x == null) {
         x = 0;
@@ -78,12 +91,11 @@
       if (y == null) {
         y = 0;
       }
-      console.log('drawTitle', text, x, y);
-      metric = this.context.measureText(text);
+      metric = this.context.measureText(text, bold, font, size);
       this.context.save();
       if (true) {
         tx = x - (metric.width / 2);
-        ty = y;
+        ty = y + size;
         this.context.translate(tx, ty);
         this.context.rotate(_ANGLE_TEXT * Math.PI / 180);
         this.context.translate(-tx, -ty);
@@ -144,14 +156,18 @@
       width: 960,
       height: 300,
       angleClip: 35,
-      opening: 120
+      opening: 120,
+      fontSize: '32px',
+      fontFamily: 'Arial',
+      fontColor: '#FFFFFF'
     };
 
     DiagonalSlider.prototype.backToOrigen = function(callback) {
       this.slides.each(function(i) {
         var slide;
         slide = $(this);
-        return slide.stop(false, false).animate({
+        slide.find('img').show();
+        return slide.stop(false, false).css({
           left: slide.data('origen_x')
         });
       });
@@ -162,71 +178,93 @@
     };
 
     DiagonalSlider.prototype.handleClickEvent = function(event, index, ref) {
-      var init_x, opening, prev, slice;
+      var current, init_x, opening, prev, slice;
       if (this.scope.data('currentIndex') === index) {
         this.scope.data('currentIndex', 0);
         this.backToOrigen(null);
         return false;
       }
       opening = this.defaults.opening;
-      prev = this.slides.eq(index);
+      current = this.slides.eq(index);
+      console.log(index, current.find('img').attr('alt'));
       slice = this.slides.filter(':gt(' + (--index) + ')');
+      prev = slice.first();
       init_x = parseInt(prev.css('left')) + prev.width() * _PERCENT_DISTRIBUTION_CLIP;
       this.backToOrigen(function() {
+        var backgroundCss, cachedimage, image;
         slice.each(function(i) {
           return $(this).animate({
             left: init_x + (i * opening)
           });
         });
-        return this.scope.data('currentIndex', index);
+        this.scope.data('currentIndex', index);
+        image = current.find('img');
+        cachedimage = current.data('justimage');
+        backgroundCss = 'transparent url(' + cachedimage + ')';
+        current.css({
+          background: backgroundCss
+        });
+        return image.hide();
       });
       return true;
     };
 
     function DiagonalSlider(scope, options) {
-      var holder, opening, self, sliderHeight, sliderWidth, slides, slidesCount, wtotal;
+      var css3, defaults, holder, labelOpts, opening, self, sliderHeight, sliderWidth, slides, slidesCount, transform, wtotal, zin;
       this.scope = scope;
       self = this;
-      sliderWidth = this.defaults.width;
-      sliderHeight = this.defaults.height;
-      opening = this.defaults.opening;
-      this.scope.css('width', sliderWidth);
-      this.scope.css('height', sliderHeight);
-      this.scope.data('currentIndex', 0);
-      holder = $('ul,ol', this.scope).addClass('clearfix');
-      this.slides = slides = holder.find('li').css('width', sliderWidth);
-      slidesCount = slides.size();
+      defaults = self.defaults;
       wtotal = 0;
+      sliderWidth = defaults.width;
+      sliderHeight = defaults.height;
+      opening = defaults.opening;
+      this.scope.css({
+        width: sliderWidth,
+        height: sliderHeight
+      }).data('currentIndex', 0);
+      holder = $('ul,ol', this.scope).addClass('clearfix');
+      this.slides = slides = holder.children().css('width', sliderWidth);
+      slidesCount = slides.size();
+      zin = 100 + slidesCount;
+      labelOpts = {
+        font: 'normal ' + defaults.fontSize + ' ' + defaults.fontFamily,
+        fillStyle: defaults.fontColor
+      };
+      css3 = new Css3Support();
+      transform = css3.supports('transform');
       slides.each(function(index, el) {
-        var alt, css3, dataUrl, dcanvas, dl, dw, hasSettedLeftProp, i, image, imagej, items, me, origen_x, tleft, tproperty, transform, transformDegs, tstyle, _i, _len, _ref;
+        var alt, dataUrl, dcanvas, dl, dw, fs, hasSettedLeftProp, i, image, imagej, items, justImage, me, origen_x, tleft, tproperty, transformDegs, tstyle, _i, _len, _ref;
         me = $(this);
         dw = me.width();
         imagej = me.find('img');
         image = imagej.get(0);
         dcanvas = new Canvas(image.width, image.height);
         me.css('z-index', index + 1 + 100);
-        css3 = new Css3Support();
-        transform = css3.supports('transform');
-        if (transform) {
+        if (transform && index > 0) {
           transformDegs = 'rotate(' + self.defaults.angleClip + 'deg)';
           tstyle = transform.vendor + 'transform-style';
           tproperty = transform.property;
           dl = $('<div></div>');
-          dl.css(tproperty, transformDegs);
-          dl.css(tstyle, 'preserve-3d');
-          dl.css({
+          dl.css(tproperty, transformDegs).css(tstyle, 'preserve-3d').css({
             height: sliderHeight * 1.5,
             width: opening * 0.7,
-            left: _PERCENT_DISTRIBUTION_CLIP * 100,
             position: 'absolute',
             zIndex: index + 3 + 100,
             top: -50,
             cursor: 'pointer'
           });
+          if (index > 0) {
+            dl.css({
+              left: (dw * _PERCENT_DISTRIBUTION_CLIP) - opening
+            });
+          } else {
+            dl.css({
+              left: dw * _PERCENT_DISTRIBUTION_CLIP
+            });
+          }
           dl.bind('mouseover', function(event) {
             return me.toggleClass('d-hover');
-          });
-          dl.click(function(event) {
+          }).click(function(event) {
             event.preventDefault();
             event.stopPropagation();
             slides.removeClass('d-active');
@@ -257,8 +295,11 @@
         }
         wtotal += dw;
         dcanvas.clipImageInDiagonal(image, 'trapecy', index > 1);
+        justImage = dcanvas.getImage();
+        me.data('justimage', justImage);
+        fs = parseInt(defaults.fontSize);
         if ((alt = imagej.attr('alt')) !== null) {
-          dcanvas.drawTitle(alt, dw * _PERCENT_DISTRIBUTION_CLIP, sliderHeight / 2);
+          dcanvas.canvasApply(labelOpts).drawTitle(alt, 'normal', defaults.fontFamily, fs, (dw * _PERCENT_DISTRIBUTION_CLIP) - fs, sliderHeight);
         }
         dataUrl = dcanvas.getImage();
         if (!hasSettedLeftProp) {
