@@ -1,0 +1,28 @@
+.clearfix:after {
+  content: "";
+  display: table;
+  clear: both; }
+
+.dslider {
+  overflow: hidden;
+  display: block;
+  position: relative; }
+  .dslider * {
+    margin: 0;
+    padding: 0; }
+
+.dslider ul, .dslider ol {
+  width: auto;
+  position: relative;
+  top: 0px;
+  left: 0px; }
+.dslider li {
+  float: left;
+  list-style: none;
+  position: absolute;
+  display: block; }
+  .dslider li.first {
+    background: transparent; }
+  .dslider li img {
+    width: 100%;
+    height: auto; }

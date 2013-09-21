@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="jquery.diagonal-slider.css" rel="stylesheet">
+    <script src="http://code.jquery.com/jquery-latest.min.js"></script>
+    <script src="jquery.diagonal-slider.js">		</script>
+  </head>
+  <body>
+    <div id="slider">
+      <ul>
+        <li><img src="img/up.jpg" alt="Title one"/></li>
+        <li><img src="img/iceage.jpg" alt="Title two"/></li>
+        <li><img src="img/birds.jpg" alt="Title three"/></li>
+        <li><img src="img/up.jpg" alt="Title four"/></li>
+        <li><img src="img/iceage.jpg" alt="Title five"/></li>
+      </ul>
+    </div>
+    <script>
+      $(document).ready(function(){
+       $('#slider').diagonalSlider()
+      })
+    </script>
+  </body>
+</html>
