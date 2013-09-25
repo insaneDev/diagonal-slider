@@ -8,17 +8,20 @@
   <body>
     <div id="slider">
       <ul>
-        <li><img src="img/up.jpg" alt="Title one"/></li>
-        <li><img src="img/iceage.jpg" alt="Title two"/></li>
-        <li><img src="img/birds.jpg" alt="Title three"/></li>
-        <li><img src="img/up.jpg" alt="Title four"/></li>
-        <li><img src="img/iceage.jpg" alt="Title five"/></li>
+        <li><img src="img/up.jpg" alt="Title one" data-ref="load.html"/></li>
+        <li><img src="img/iceage.jpg" alt="Title two" data-ref="load.html"/></li>
+        <li><img src="img/birds.jpg" alt="Title three" data-ref=".dummy"/></li>
+        <li><img src="img/up.jpg" alt="Title four" data-ref="load.html"/></li>
+        <li><img src="img/iceage.jpg" alt="Title five" data-ref=".dummy"/></li>
       </ul>
     </div>
     <script>
       $(document).ready(function(){
-       $('#slider').diagonalSlider()
+       $('#slider').diagonalSlider({width: 1100, height: 365})
       })
     </script>
+    <div class="dummy">
+      <p>| content content content</p>
+    </div>
   </body>
 </html>
