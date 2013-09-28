@@ -455,7 +455,7 @@
     };
 
     function DiagonalSlider(scope, options) {
-      var css3, defaults, degs, holder, labelOpts, opening, self, sliderHeight, sliderWidth, slides, slidesCount, transform, wtotal, zin;
+      var css3, defaults, holder, labelOpts, opening, self, sliderHeight, sliderWidth, slides, slidesCount, transform, wtotal, zin;
 
       this.scope = scope;
       self = this;
@@ -470,19 +470,6 @@
         self.defaults.opening = sliderWidth / slidesCount;
       }
       opening = defaults.opening;
-      degs = (function() {
-        var ah, angle1, angle2, aw, f, f1, f2, op;
-
-        f = _PERCENT_DISTRIBUTION_CLIP;
-        aw = sliderWidth * f;
-        op = sliderHeight;
-        ah = Math.sqrt(Math.pow(aw, 2) + Math.pow(op, 2));
-        f1 = op / ah;
-        f2 = aw / ah;
-        angle1 = _RADIAN * _ASIN(f1);
-        angle2 = 90 - angle1;
-        return [angle1, angle2, f1, f2];
-      })();
       wtotal = 0;
       this.scope.css({
         width: sliderWidth,
@@ -498,11 +485,13 @@
       css3 = new Css3Support();
       transform = css3.supports('transform');
       slides.each(function(index, el) {
-        var abs_leftpos, btnClose, clone, csstransform, dh, dl, dw, hasSettedLeftProp, i, image, imagej, init_x, items, leftReference, me, origen_x, rel_leftpos, tleft, tproperty, transformDegs, tstyle, whenImageIsLoaded, _i, _len, _ref;
+        var abs_leftpos, btnClose, clone, csstransform, degs, dh, dl, dw, hasSettedLeftProp, i, image, imagej, init_x, items, leftReference, me, origen_x, rel_leftpos, slice, tleft, tproperty, transformDegs, tstyle, whenImageIsLoaded, _i, _len, _ref;
 
         me = $(this);
         dw = me.width();
         dh = me.height();
+        imagej = me.find('img').height(sliderHeight);
+        image = imagej.get(0);
         btnClose = $('<a href="" class="close-btn"></a>');
         btnClose.click(function(event) {
           event.preventDefault();
@@ -510,6 +499,20 @@
           self.close();
           return self.scope.data('currentIndex', 0);
         });
+        slice = opening + opening * (1 + _PERCENT_DISTRIBUTION_CLIP);
+        degs = (function(width, height, f) {
+          var ah, angle1, angle2, aw, f1, f2, op;
+
+          aw = width * f;
+          op = height;
+          ah = Math.sqrt(Math.pow(aw, 2) + Math.pow(op, 2));
+          f1 = op / ah;
+          f2 = aw / ah;
+          angle1 = _RADIAN * _ASIN(f1);
+          angle2 = 90 - angle1;
+          return [angle1, angle2, f1, f2];
+        })(slice, sliderHeight, _PERCENT_DISTRIBUTION_CLIP);
+        console.log('degs', slice, degs);
         clone = null;
         clone = (function() {
           var exists;
@@ -522,15 +525,13 @@
           }
         })();
         me.append(btnClose);
-        imagej = me.find('img').height(sliderHeight);
-        image = imagej.get(0);
         if (transform && index > 0) {
-          init_x = opening;
+          init_x = 0;
           transformDegs = 'skew(-' + degs[1] + 'deg)';
           tstyle = transform.vendor + 'transform-style';
           tproperty = transform.property;
           abs_leftpos = init_x + (opening - opening * degs[1] / 100);
-          rel_leftpos = init_x + (index * opening * (1 + degs[2]));
+          rel_leftpos = init_x + (opening * (index + degs[1] / 100));
           dl = $('<div></div>').addClass('rubber').attr('for', index);
           dl.css(tproperty, transformDegs).css(tstyle, 'preserve-3d').css({
             height: sliderHeight * 1.5,
@@ -581,10 +582,9 @@
           me.data('origen_x', tleft).css(csstransform);
         }
         imagej.hide().load(whenImageIsLoaded = function() {
-          var backgroundCss, classname, cls1, cls2, cls3, destRect, dis, imgdata, justTheImageData, rect, rectData, rectcanvas, slice, sliceImg, sourceRect, xstart;
+          var backgroundCss, classname, cls1, cls2, cls3, destRect, dis, imgdata, justTheImageData, rect, rectData, rectcanvas, sliceImg, sourceRect, xstart;
 
           dis = $(this);
-          slice = opening + opening * (1 + degs[3]);
           xstart = leftReference;
           rectcanvas = new Canvas(slice, sliderHeight, image);
           sourceRect = {

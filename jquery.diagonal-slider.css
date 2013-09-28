@@ -37,6 +37,8 @@
     width: 16px;
     height: 16px;
     background-color: #ededed; }
+  .dslider .rubber {
+    box-shadow: 10px 42px rgba(0, 0, 0, 0.2); }
 
 .dslider.open .rubber {
   display: none;
