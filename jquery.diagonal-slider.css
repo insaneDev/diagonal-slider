@@ -1,3 +1,17 @@
+.animate {
+  -webkit-transition: -webkit-transform 1s ease-out;
+  -moz-transition: -moz-transform 1s ease-out;
+  -ms-transition: -ms-transform 1s ease-out;
+  -o-transition: -o-transform 1s ease-out;
+  transition: transform 1s ease-out; }
+
+.active.animate {
+  -webkit-transition: -webkit-transform 1s ease-out;
+  -moz-transition: -moz-transform 1s ease-out;
+  -ms-transition: -ms-transform 1s ease-out;
+  -o-transition: -o-transform 1s ease-out;
+  transition: transform 1s ease-out; }
+
 .clearfix:after {
   content: "";
   display: table;
@@ -10,19 +24,68 @@
   .dslider * {
     margin: 0;
     padding: 0; }
+  .dslider .dcontent-inner {
+    padding: 10px;
+    display: none;
+    visibility: hidden; }
+  .dslider .close-btn {
+    display: none;
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    font-size: 14px;
+    width: 16px;
+    height: 16px;
+    background-color: #ededed; }
 
+.dslider.open .rubber {
+  display: none;
+  visibility: hidden; }
+.dslider .dcontent, .dslider .dcontent-inner {
+  font-size: 12px;
+  background-repeat: no-repeat; }
+.dslider li {
+  background-size: cover; }
+.dslider .active {
+  opacity: 1; }
+  .dslider .active .dcontent {
+    background-image: none !important; }
+  .dslider .active .dcontent-inner {
+    display: block !important;
+    visibility: visible !important;
+    background-image: none !important; }
+  .dslider .active .close-btn {
+    display: block !important;
+    visibility: visible !important; }
+  .dslider .active .rubber {
+    background: white;
+    background: rgba(255, 255, 255, 0.1); }
+.dslider.active img, .dslider.active .diagonal {
+  display: none; }
 .dslider ul, .dslider ol {
   width: auto;
   position: relative;
   top: 0px;
-  left: 0px; }
+  left: 0px;
+  height: 100%;
+  font-size: 0; }
 .dslider li {
   float: left;
   list-style: none;
   position: absolute;
-  display: block; }
+  display: block;
+  height: 100%; }
   .dslider li.first {
-    background: transparent; }
+    background-size: cover; }
   .dslider li img {
+    display: block;
     width: 100%;
     height: auto; }
+  .dslider li .rubber {
+    border: 2px solid transparent; }
+
+@media only screen and (min-width: 480px) {
+  .dslider {
+    width: 100%; }
+    .dslider img {
+      display: none; } }
