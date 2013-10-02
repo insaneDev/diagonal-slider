@@ -3,7 +3,12 @@
   -moz-transition: -moz-transform 1s ease-out;
   -ms-transition: -ms-transform 1s ease-out;
   -o-transition: -o-transform 1s ease-out;
-  transition: transform 1s ease-out; }
+  transition: transform 1s ease-out;
+  -webkit-transition-timing-function: cubic-bezier(0.6, 0, 0.4, 1);
+  -moz-transition-timing-function: cubic-bezier(0.6, 0, 0.4, 1);
+  -o-transition-timing-function: cubic-bezier(0.6, 0, 0.4, 1);
+  -ms-transition-timing-function: cubic-bezier(0.6, 0, 0.4, 1);
+  transition-timing-function: cubic-bezier(0.6, 0, 0.4, 1); }
 
 .active.animate {
   -webkit-transition: -webkit-transform 1s ease-out;

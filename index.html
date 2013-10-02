@@ -1,23 +1,38 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <link href="jquery.diagonal-slider.css" rel="stylesheet">
-    <script src="http://code.jquery.com/jquery-latest.min.js"></script>
-    <script src="jquery.diagonal-slider.js">		</script>
+    <script src="jquery.js"></script>
+    <link href="jquery.diagonal-slider.css" rel="stylesheet">    
+    <script src="jquery.diagonal-slider.js"></script>
   </head>
   <body>
     <div id="slider">
       <ul>
-        <li><img src="img/up.jpg" alt="Title one"/></li>
-        <li><img src="img/iceage.jpg" alt="Title two"/></li>
-        <li><img src="img/birds.jpg" alt="Title three"/></li>
-        <li><img src="img/up.jpg" alt="Title four"/></li>
-        <li><img src="img/iceage.jpg" alt="Title five"/></li>
+        <li><img id="f1" src="img/iceage.jpg" alt="Title one" data-ref="load.html"/></li>
+        <li>
+            <img id="f2" src="img/up.jpg" alt="Title two" data-ref="load.html"/>
+              <div class="diagonal dcontent clearfix" style="height: 365px; width: 1100px;">
+                <div class="dcontent-inner">
+                  <p>
+                    Content Content Content Content Content Content Content 
+                    </p>
+                </div>
+              </div>
+        </li>
+        <li><img id="f3" src="img/birds.jpg" alt="Title three" data-ref="load.html"/></li>
+        <li><img id="f4" src="img/up.jpg" alt="Title four" data-ref="load.html"/></li>
+        <li><img id="f5" src="img/iceage.jpg" alt="Title five" data-ref="load.html"/></li>
       </ul>
     </div>
+    <img id="f1" src="img/birds.jpg" alt="Title one" data-ref="load.html" width="1100" height="365"/>
+
+    <img id="im" />
+    <div id="test" class="dbgc_1" style="width:1100px; height:365px; background-position: center center;" ></div>
     <script>
+      var slider;
       $(document).ready(function(){
-       $('#slider').diagonalSlider()
+        console.log('doc ready')
+        slider = $('#slider').diagonalSlider({width: 1100, height: 365})
       })
     </script>
   </body>

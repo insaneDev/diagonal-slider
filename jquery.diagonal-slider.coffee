@@ -8,6 +8,13 @@ _ASIN = Math['asin'];
 _COS = Math['cos'];
 _ACOS = Math['acos'];
 
+log = () ->
+	console.log Array::slice.call(arguments) if window['console']
+	true
+
+debug = () ->
+	console.log Array::slice.call(arguments) if window['console']
+	true
 
 unless window.getComputedStyle
   window.getComputedStyle = (el, pseudo) ->
@@ -170,7 +177,7 @@ class Canvas
 		try
 			@context.drawImage(@image, 0, 0, @image.width, @image.height, 0, 0, @w(), @h())
 		catch e
-			console.log(e, e.message, @image)
+			debug(e, e.message, @image)
 
 		@context.restore()
 		@
@@ -194,7 +201,6 @@ class DiagonalSlider
 		self = @
 
 		self.scope
-			.removeClass('open')
 			.find('.rubber').show()
 
 		currentIndex = self.scope.data('currentIndex')
@@ -202,8 +208,6 @@ class DiagonalSlider
 		supportTransform = self.css3.supports('transform')
 
 		slides = self.slides
-
-
 
 		slides.sort( (i) ->
 			i is currentIndex
@@ -214,6 +218,18 @@ class DiagonalSlider
 
 
 		slides.removeClass('active')
+
+		transitionCntSlide = slides.length
+
+		onSlideTransitionEnds = (current = transitionCntSlide) ->
+			debug('onSlideTransitionEnds', current)
+			if current is 0 # reset ends successfully
+				self.scope
+					.removeClass('open')
+					.addClass('closed')
+					.data('currentIndex', -1)
+
+		#onSlideTransitionEnds()
 
 		slides.each( (i, slideElement) ->
 			
@@ -226,13 +242,12 @@ class DiagonalSlider
 			transform = self._conditionalCssLeft(tx)
 			transform['background-image'] = slide.data('clippedImageData')
 
-
 			pcssl = self._parseCssLeft(slide)
 
 			if pcssl is tx or $skipTransition
 				#we are allready there
 				callbackEach.apply(self, [i, slide]) if callbackEach
-				return slide			
+				return slide
 
 			if supportTransform
 
@@ -240,7 +255,8 @@ class DiagonalSlider
 					.addClass('animate')
 					.css(transform)
 					.one('webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend', (event) -> 
-
+						transitionCntSlide--
+						onSlideTransitionEnds()
 						slide.removeClass('animate')
 						if callbackEach
 							callbackEach.apply(self, [i, slide])
@@ -251,6 +267,8 @@ class DiagonalSlider
 
 				slide
 					.animate(transform, transitionDuration, () ->
+						transitionCntSlide--
+						onSlideTransitionEnds()
 						callbackEach.apply(self, [i, slide]) if callbackEach
 						@
 					)
@@ -296,9 +314,6 @@ class DiagonalSlider
 			@close
 				force: true
 			return false
-		
-
-		self.scope.removeClass('closed').addClass('open')
 
 		@slides
 			.removeClass('active')
@@ -319,9 +334,7 @@ class DiagonalSlider
 
 		reference = img.data('ref')
 		container = current.find('.dcontent-inner');
-		isExternal = reference.indexOf('.')>-1 or reference.indexOf('#')>-1;
-
-
+		isExternal = if reference then reference.indexOf('.')>-1 or reference.indexOf('#')>-1 else false
 		
 		if isExternal
 			container.empty().load(reference)
@@ -329,6 +342,8 @@ class DiagonalSlider
 			container.empty().append($(reference))
 
 		init_x = parseInt(current.css('left')) + current.width() * _PERCENT_DISTRIBUTION_CLIP
+
+		css3supports = self.css3.supports('transform')
 
 		animateTransition = (el, i, skip, css3supports) ->
 
@@ -341,8 +356,6 @@ class DiagonalSlider
 
 			transform = self._conditionalCssLeft(outsideViewport)
 
-
-
 			if css3supports
 				dhis
 					.addClass('animate')
@@ -354,14 +367,16 @@ class DiagonalSlider
 
 			self.scope.trigger('dslider-change', [null])
 
-		css3supports = self.css3.supports('transform')
-
 		filterFunction = (jor, el) -> jor isnt index
-
 
 		current
 			.removeClass('animate')
 			#.css('background-image', current.data('background-css-origin'))
+
+		#.removeClass('open')
+
+		l = self.slides.length-1
+		slidesCountTransitioning = self.slides.length-1
 
 		@reset( (ii, transitionSlide) ->
 
@@ -371,7 +386,19 @@ class DiagonalSlider
 
 				self.scope.trigger('dslider-before-change', [self, ii, transitionSlide])
 				animateTransition(transitionSlide, ii, index, css3supports )
+				
+				#for j in [0..l]
+				#	self.scope.removeClass('dbgi_' + j )
+
+				debug('isntMe', ii, transitionSlide, slidesCountTransitioning--)
 			else
+				debug('isMe', ii, transitionSlide, slidesCountTransitioning--)
+
+				for j in [0..l]
+					self.scope.removeClass('dbgi_' + j )
+				
+				self.scope.addClass('dbgi_' + ii )
+				self.scope.data('currentIndex', ii)
 
 				transform = self._conditionalCssLeft(0)
 				transform.left = 0
@@ -382,17 +409,13 @@ class DiagonalSlider
 					.addClass('active')
 					.css(transform)
 
-			l = self.slides.length-1
-			if ii is l
-				self.scope.addClass('open')
-
-				for i in [0..l]
-					self.scope.removeClass('dbgi_' + i )
-				self.scope.addClass('dbgi_' + currentIndex )
-
+			if slidesCountTransitioning is 0 #transition open complete
+				self.scope
+					.removeClass('closed')
+					.addClass('open')			
 		)
 
-		@scope.data('currentIndex', index)
+		
 
 		@
 
@@ -478,7 +501,7 @@ class DiagonalSlider
 
 				[angle1, angle2, f1, f2]
 
-			console.log('degs', slice, degs)
+			#debug('degs', slice, degs)
 
 			clone = null
 			clone  = do () ->
@@ -526,6 +549,7 @@ class DiagonalSlider
 						event.stopPropagation()
 						slides.removeClass('active')
 						me.toggleClass('active')
+						#debug(index)
 						self.handleClickEvent.apply(self, [event, index, me])
 					)
 				me.parent().append(dl)
