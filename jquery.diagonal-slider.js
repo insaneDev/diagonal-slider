@@ -20,6 +20,31 @@
 
   _ACOS = Math['acos'];
 
+  if (!window.getComputedStyle) {
+    window.getComputedStyle = function(el, pseudo) {
+      this.el = el;
+      this.getPropertyValue = function(prop) {
+        var re;
+
+        re = /(\-([a-z]){1})/g;
+        if (prop === "float") {
+          prop = "styleFloat";
+        }
+        if (re.test(prop)) {
+          prop = prop.replace(re, function() {
+            return arguments_[2].toUpperCase();
+          });
+        }
+        if (el.currentStyle[prop]) {
+          return el.currentStyle[prop];
+        } else {
+          return null;
+        }
+      };
+      return this;
+    };
+  }
+
   Css3Support = (function() {
     Css3Support.prototype.vendors = ['-webkit-', '-o-', '-ms-', '-moz-', ''];
 
@@ -710,3 +735,7 @@
   this;
 
 }).call(this);
+
+/*
+//@ sourceMappingURL=jquery.diagonal-slider.map
+*/
