@@ -3,6 +3,8 @@ _ANGLE_TEXT = -_SKEW_ANGLE
 _PERCENT_DISTRIBUTION_CLIP = 0.3
 _PERCENT_DISTRIBUTION_CONT = 1 - _PERCENT_DISTRIBUTION_CLIP*2
 _RADIAN = 180/Math.PI
+_MAX = Math['max'];
+_MIN = Math['min'];
 _SIN = Math['sin'];
 _ASIN = Math['asin'];
 _COS = Math['cos'];
@@ -34,9 +36,8 @@ class Css3Support
 	vendors : ['-webkit-','-o-','-ms-','-moz-','']
 	### Css3 quick support check###
 	constructor : () ->
-		p = document.createElement('p')
-		@testElement = p
-		document.body.insertBefore(@testElement, null) 
+		el = if @testElement then @testElement else (@testElement = document.createElement('p'))
+		document.body.insertBefore(el, null) 
 	supports: (key) ->
 		for v, e in @vendors
 			return {vendor: v, property: v+key} if window.getComputedStyle(@testElement).getPropertyValue(v+key)
@@ -209,17 +210,14 @@ class DiagonalSlider
 
 		slides = self.slides
 
-		slides.sort( (i) ->
-			i is currentIndex
-		)
+		#slides.sort( (i) -> i is currentIndex )
 
-		if $filter isnt null
-			slides = slides.filter( (index) -> $filter(index, @) )
-
+		#if $filter isnt null
+		#	slides = slides.filter( (index) -> $filter(index, @) )
 
 		slides.removeClass('active')
 
-		transitionCntSlide = slides.length
+		transitionCntSlide = slides.length		
 
 		onSlideTransitionEnds = (current = transitionCntSlide) ->
 			debug('onSlideTransitionEnds', current)
@@ -229,10 +227,10 @@ class DiagonalSlider
 					.addClass('closed')
 					.data('currentIndex', -1)
 
-		#onSlideTransitionEnds()
+		onSlideTransitionEnds()
 
 		slides.each( (i, slideElement) ->
-			
+
 			slide = $(slideElement)
 
 			tx = slide.data('origen_x')
@@ -244,16 +242,17 @@ class DiagonalSlider
 
 			pcssl = self._parseCssLeft(slide)
 
-			if pcssl is tx or $skipTransition
+			if Math.floor(pcssl) is Math.floor(tx) or $skipTransition
 				#we are allready there
 				callbackEach.apply(self, [i, slide]) if callbackEach
 				return slide
 
 			if supportTransform
 
+				debug('slides e', i, slideElement, pcssl,  tx)
+
 				slide
 					.addClass('animate')
-					.css(transform)
 					.one('webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend', (event) -> 
 						transitionCntSlide--
 						onSlideTransitionEnds()
@@ -262,6 +261,7 @@ class DiagonalSlider
 							callbackEach.apply(self, [i, slide])
 						@
 					)
+					.css(transform)
 				@
 			else
 
@@ -439,7 +439,8 @@ class DiagonalSlider
 		sliderHeight = defaults.height		
 
 		if self.defaults.opening is 'auto'
-			self.defaults.opening = sliderWidth/slidesCount
+			computedOpening = _MAX(sliderWidth/slidesCount, sliderWidth/6)
+			self.defaults.opening = computedOpening
 		opening = defaults.opening
 
 		wtotal = 0
@@ -700,18 +701,19 @@ if typeof(@.jQuery) != null
 	$.fn.diagonalSlider = (options = {} ) ->
 		selection = $(@)
 		args = Array.prototype.slice.call(arguments)
-		isMethodCall = typeof(options) is "string"
-		returnn = null
+		isMethodCall = options isnt null and typeof(options) is "string"
+		methodResult = null
 
 		if isMethodCall
-			returnn = do () ->
+			methodResult = do () ->
 				diagonalSlider = selection.data('dslider')
 				method = args.shift()
-				methodReference = diagonalSlider[method]
-				try
-					return methodReference.apply(diagonalSlider, args)
-				catch e
-					return null
+				methodReference = if method isnt null then diagonalSlider[method] else false
+				if methodReference
+					try
+						return methodReference.apply(diagonalSlider, args)
+					catch e
+						return null
 		else
 			selection.each( () ->
 				me = $(@)
@@ -721,6 +723,6 @@ if typeof(@.jQuery) != null
 
 				me
 			)
-		if returnn isnt null then returnn else selection
+		if methodResult isnt null then methodResult else selection
 		@
 @
