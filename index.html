@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
     <script src="jquery.js"></script>
     <link href="jquery.diagonal-slider.css" rel="stylesheet">    
     <script src="jquery.diagonal-slider.js"></script>
@@ -44,7 +45,38 @@
       var slider;
       $(document).ready(function(){
         console.log('doc ready')
-        slider = $('#slider').diagonalSlider({width: 1100, height: 365})
+        slider = $('#slider').diagonalSlider({width: 1100, height: 365, titleWritter: function(contextOrigen, data){
+            
+            var canvasWritter = this;
+            var words = data.title.split(/\s+/);
+
+            var fontFamily = 'Lato';
+            var fontSize = 32;
+            var fontStyle = 'normal';
+            var fontDec = fontStyle + ' ' + fontSize + "px " + fontFamily
+            var fontColor = '#DDDDDD';
+            var fontColor2 = '#EDEDED';
+
+            var initx = data.image.width*(0.8-data.dist);
+
+            contextOrigen.font = fontDec;
+            contextOrigen.fillStyle = fontColor;
+
+            canvasWritter.drawTitle(words.shift()
+              , fontStyle
+              , fontFamily
+              , fontSize
+              , initx
+              , data.image.height
+              , -data.degrees[0]
+              , function(context, drawResult){
+
+                  context.fillStyle = fontColor2;
+                  context.fillText(" Best", initx + drawResult.dimension.width, data.image.height);
+
+              });
+
+        }})
       })
     </script>
   </body>

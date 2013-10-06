@@ -185,26 +185,41 @@
       return this;
     };
 
-    Canvas.prototype.drawTitle = function(text, bold, font, size, x, y, angle) {
-      var metric, tx, ty;
+    Canvas.prototype.drawTitle = function(text, bold, font, size, x, y, angle, afterDraw) {
+      var drawResult, metric, tx, ty;
       if (x == null) {
         x = 0;
       }
       if (y == null) {
         y = 0;
       }
+      if (angle == null) {
+        angle = 0;
+      }
+      if (afterDraw == null) {
+        afterDraw = function() {
+          return true;
+        };
+      }
       metric = this.context.measureText(text, bold, font, size);
       this.context.save();
-      if (true) {
-        tx = x - (metric.width / 2);
-        ty = y + size;
-        this.context.translate(tx, ty);
-        this.context.rotate(angle);
-        this.context.translate(-tx, -ty);
-      }
+      tx = x - metric.width;
+      ty = y - size;
+      this.context.translate(tx, ty);
+      this.context.rotate(angle * Math.PI / 180);
+      this.context.translate(-tx, -ty);
+      drawResult = {
+        dx: x,
+        x: tx,
+        y: ty,
+        dimension: metric
+      };
       this.context.fillText(text, x, y);
+      if (afterDraw) {
+        afterDraw(this.context, drawResult);
+      }
       this.context.restore();
-      return this;
+      return drawResult;
     };
 
     Canvas.prototype.clipImageInDiagonal = function(mode, percentTriangleStart, rectCrop, rectCrop2) {
@@ -280,7 +295,9 @@
       opening: 'auto',
       fontSize: '32px',
       fontFamily: 'Arial',
-      fontColor: '#FFFFFF'
+      fontColor: '#FFFFFF',
+      maxSlidesPerPage: 7,
+      titleWritter: null
     };
 
     DiagonalSlider.prototype.reset = function(callbackEach, callbackComplete, $filter, $skipTransition) {
@@ -490,7 +507,7 @@
     };
 
     function DiagonalSlider(scope, options) {
-      var computedOpening, css3, defaults, holder, labelOpts, opening, self, sliderHeight, sliderWidth, slides, slidesCount, transform, wtotal, zin;
+      var computedOpening, css3, defaults, holder, labelOpts, maxSlidesPerPage, opening, self, sliderHeight, sliderWidth, slides, slidesCount, transform, wtotal, zin;
       this.scope = scope;
       self = this;
       self.css3 = new Css3Support();
@@ -498,10 +515,13 @@
       holder = $('ul,ol', this.scope);
       this.slides = slides = holder.children('li');
       slidesCount = slides.size();
+      maxSlidesPerPage = defaults.maxSlidesPerPage;
+      self.pages = slidesCount / maxSlidesPerPage;
+      debug(self.pages);
       sliderWidth = defaults.width;
       sliderHeight = defaults.height;
       if (self.defaults.opening === 'auto') {
-        computedOpening = _MAX(sliderWidth / slidesCount, sliderWidth / 6);
+        computedOpening = _MAX(sliderWidth / slidesCount, sliderWidth / defaults.maxSlidesPerPage);
         self.defaults.opening = computedOpening;
       }
       opening = defaults.opening;
@@ -637,14 +657,27 @@
           sliceImg.onload = function() {
             var alt, clipMode, clippedImageData, dcanvas, fs;
             dcanvas = new Canvas(this.width, this.height, this);
+            debug(degs);
             clipMode = index === 0 ? 'gun' : 'paralellogram';
             dcanvas.clipImageInDiagonal(clipMode, _PERCENT_DISTRIBUTION_CLIP);
-            clippedImageData = dcanvas.getImage();
-            me.data('clippedImageData', clippedImageData);
             fs = parseInt(defaults.fontSize);
             if ((alt = imagej.attr('alt')) !== null) {
-              dcanvas.canvasApply(labelOpts).drawTitle(alt, 'normal', defaults.fontFamily, fs, (dw * _PERCENT_DISTRIBUTION_CLIP) - fs, sliderHeight, degs[0]);
+              dcanvas.canvasApply(labelOpts);
+              if (typeof defaults.titleWritter === 'function') {
+                defaults.titleWritter.apply(dcanvas, [
+                  dcanvas.getContext(), {
+                    title: alt,
+                    degrees: degs,
+                    image: this,
+                    dist: _PERCENT_DISTRIBUTION_CLIP
+                  }
+                ]);
+              } else {
+                dcanvas.drawTitle(alt, 'normal', defaults.fontFamily, fs, this.width * (0.9 - _PERCENT_DISTRIBUTION_CLIP), this.height, -degs[0]);
+              }
             }
+            clippedImageData = dcanvas.getImage();
+            me.data('clippedImageData', clippedImageData);
             return (function(eindex) {
               var head, style;
               style = '<style>';
@@ -700,7 +733,7 @@
       }
       selection = $(this);
       args = Array.prototype.slice.call(arguments);
-      isMethodCall = options !== null && typeof options === "string";
+      isMethodCall = options === null || typeof options === "string";
       methodResult = null;
       if (isMethodCall) {
         methodResult = (function() {

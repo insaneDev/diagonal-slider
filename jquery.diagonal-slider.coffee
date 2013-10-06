@@ -90,33 +90,43 @@ class Canvas
 			context[e] = i for e, i of obj
 		@
 
-	drawTitle: (text, bold, font, size, x=0, y=0, angle)->
+	drawTitle: (text, bold, font, size, x=0, y=0, angle=0, afterDraw = () -> true)->
+
 		#metric will receive the measures of the text
 		metric = @context.measureText(text, bold, font, size) 
 		#this will "save" the normal canvas to return to
 		@context.save()
-		if true
-			#These two methods will change EVERYTHING
-			#drawn on the canvas from this point forward
-			#Since we only want them to apply to this one fillText,
-			#we use save and restore before and after
+		#These two methods will change EVERYTHING
+		#drawn on the canvas from this point forward
+		#Since we only want them to apply to this one fillText,
+		#we use save and restore before and after
 
-			#We want to find the center of the text (or whatever point you want) and rotate about it
-			tx = x - (metric.width/2)
-			ty = y + size 
+		#We want to find the center of the text (or whatever point you want) and rotate about it
+		tx = x - metric.width
+		ty = y - size 
 
-			#Translate to near the center to rotate about the center
-			@context.translate(tx,ty)
-			#Then rotate...
-			#_ANGLE_TEXT*Math.PI/180
-			@context.rotate(angle)
-			#Then translate back to draw in the right place!
-			@context.translate(-tx,-ty)
-		
+		#Translate to near the center to rotate about the center
+		@context.translate(tx,ty)
+		#Then rotate...
+		#_ANGLE_TEXT
+		@context.rotate(angle*Math.PI/180)
+		#Then translate back to draw in the right place!
+		@context.translate(-tx,-ty)
+
+		drawResult = 
+			dx : x
+			x: tx
+			y: ty
+			dimension: metric
+
 		@context.fillText(text, x, y)
+
+		if afterDraw
+			afterDraw(@context, drawResult)
 		#This will un-translate and un-rotate the canvas
 		@context.restore()
-		@
+		
+		drawResult
 	
 	clipImageInDiagonal: (mode = 'paralellogram', percentTriangleStart = _PERCENT_DISTRIBUTION_CLIP, rectCrop = null, rectCrop2 = null ) ->
 
@@ -196,6 +206,8 @@ class DiagonalSlider
 		fontSize: '32px'
 		fontFamily: 'Arial'
 		fontColor: '#FFFFFF'
+		maxSlidesPerPage : 7
+		titleWritter: null
 	
 	reset: (callbackEach, callbackComplete, $filter = null, $skipTransition = false) ->
 
@@ -434,12 +446,16 @@ class DiagonalSlider
 		holder = $('ul,ol', @scope)
 		@slides = slides = holder.children('li')
 		slidesCount = slides.size()
+		maxSlidesPerPage = defaults.maxSlidesPerPage
+
+		self.pages = slidesCount/maxSlidesPerPage
+		debug(self.pages)
 
 		sliderWidth = defaults.width
 		sliderHeight = defaults.height		
 
 		if self.defaults.opening is 'auto'
-			computedOpening = _MAX(sliderWidth/slidesCount, sliderWidth/6)
+			computedOpening = _MAX(sliderWidth/slidesCount, sliderWidth/defaults.maxSlidesPerPage)
 			self.defaults.opening = computedOpening
 		opening = defaults.opening
 
@@ -615,22 +631,26 @@ class DiagonalSlider
 					#dcanvas.putImageData(rectData)
 					
 					#justTheImageData = dcanvas.imageToDataUrl(@, sliderWidth, sliderHeight)
-					
+					debug(degs)
 
 					clipMode = if index is 0 then 'gun' else 'paralellogram'
 					
 					dcanvas.clipImageInDiagonal(clipMode, _PERCENT_DISTRIBUTION_CLIP)				
-
-					clippedImageData = dcanvas.getImage()
-
-					me.data('clippedImageData', clippedImageData)
 
 					fs = parseInt(defaults.fontSize)
 				
 					if (alt = imagej.attr('alt')) != null
 						dcanvas
 							.canvasApply(labelOpts)
-							.drawTitle(alt, 'normal', defaults.fontFamily, fs, (dw * _PERCENT_DISTRIBUTION_CLIP)-fs, sliderHeight, degs[0] )
+						if typeof(defaults.titleWritter) is 'function'
+							defaults.titleWritter.apply(dcanvas, [dcanvas.getContext(), {title: alt, degrees: degs, image: @, dist: _PERCENT_DISTRIBUTION_CLIP}])
+						else
+							dcanvas
+								.drawTitle(alt, 'normal', defaults.fontFamily, fs, @.width*(0.9-_PERCENT_DISTRIBUTION_CLIP), @.height, -degs[0] )
+
+					clippedImageData = dcanvas.getImage()
+
+					me.data('clippedImageData', clippedImageData)
 
 					do ( eindex = index ) -> 
 					
@@ -701,7 +721,7 @@ if typeof(@.jQuery) != null
 	$.fn.diagonalSlider = (options = {} ) ->
 		selection = $(@)
 		args = Array.prototype.slice.call(arguments)
-		isMethodCall = options isnt null and typeof(options) is "string"
+		isMethodCall = options is null or typeof(options) is "string"
 		methodResult = null
 
 		if isMethodCall
