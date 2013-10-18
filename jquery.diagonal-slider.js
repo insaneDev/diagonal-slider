@@ -198,7 +198,7 @@
       }
       if (afterDraw == null) {
         afterDraw = function() {
-          return true;
+          return 1;
         };
       }
       metric = this.context.measureText(text, bold, font, size);
@@ -287,6 +287,20 @@
   DiagonalSlider = (function() {
     DiagonalSlider.prototype.canvas = null;
 
+    DiagonalSlider.prototype.calculated = {
+      a: 0
+    };
+
+    DiagonalSlider.prototype.pages = 0;
+
+    DiagonalSlider.prototype.currentPage = 0;
+
+    DiagonalSlider.prototype.proccessedSlides = 0;
+
+    DiagonalSlider.prototype.sliderWidth = 0;
+
+    DiagonalSlider.prototype.sliderHeight = 0;
+
     DiagonalSlider.prototype.defaults = {
       slideOpening: 'full',
       width: 1100,
@@ -309,9 +323,8 @@
         $skipTransition = false;
       }
       self = this;
-      self.scope.find('.rubber').show();
       currentIndex = self.scope.data('currentIndex');
-      supportTransform = self.css3.supports('transform');
+      supportTransform = typeof self.css3.supports('transform') === 'object';
       slides = self.slides;
       slides.removeClass('active');
       transitionCntSlide = slides.length;
@@ -319,12 +332,12 @@
         if (current == null) {
           current = transitionCntSlide;
         }
-        debug('onSlideTransitionEnds', current);
+        debug('onSlideTransitionEnds', current, self.scope);
         if (current === 0) {
-          return self.scope.removeClass('open').addClass('closed').data('currentIndex', -1);
+          return self.scope.toggleClass('closed').toggleClass('open').data('currentIndex', -1).find('.rubber').show();
         }
       };
-      onSlideTransitionEnds();
+      debug('reset', slides, supportTransform, transitionCntSlide);
       slides.each(function(i, slideElement) {
         var pcssl, slide, transform, transitionDuration, tx, ty;
         slide = $(slideElement);
@@ -410,6 +423,18 @@
       return value;
     };
 
+    DiagonalSlider.prototype.degs = function(w, h, f) {
+      var ah, angle1, angle2, aw, f1, f2, op;
+      aw = w * f;
+      op = h;
+      ah = Math.sqrt(Math.pow(aw, 2) + Math.pow(op, 2));
+      f1 = op / ah;
+      f2 = aw / ah;
+      angle1 = _RADIAN * _ASIN(f1);
+      angle2 = 90 - angle1;
+      return [angle1, angle2, f1, f2];
+    };
+
     DiagonalSlider.prototype._conditionalCssLeft = function(x) {
       var css3, css3supports, property, transform;
       css3 = new Css3Support();
@@ -421,8 +446,214 @@
       return transform;
     };
 
+    DiagonalSlider.prototype.paginateTo = function($event, $page) {
+      var cover, defaults, from, labelOpts, leftReference, maxSlidesPerPage, page, self, slides, untill, wtotal, zin;
+      self = this;
+      page = $($event.target).data('page');
+      if (page === self.currentPage) {
+        return false;
+      }
+      cover = self.scope.find('.cover');
+      cover.fadeIn();
+      defaults = self.defaults;
+      from = self.defaults.maxSlidesPerPage * page;
+      untill = from + self.defaults.maxSlidesPerPage;
+      maxSlidesPerPage = defaults.maxSlidesPerPage;
+      leftReference = 0;
+      labelOpts = {
+        font: 'normal ' + defaults.fontSize + ' ' + defaults.fontFamily,
+        fillStyle: defaults.fontColor
+      };
+      wtotal = 0;
+      zin = 0;
+      slides = self.allslides;
+      slides = slides.slice(from, untill);
+      slides.find(':visible').hide();
+      self.proccessedSlides = 0;
+      debug('paginateTo', page + " current is " + self.currentPage);
+      return slides.each(function(index, el) {
+        var abs_leftpos, btnClose, clone, css3, csstransform, degs, dh, dl, dw, hasSettedLeftProp, i, image, imagej, init_x, items, me, opening, origen_x, rel_leftpos, slice, sliderHeight, sliderWidth, slidesCount, tleft, tproperty, transform, transformDegs, tstyle, whenImageIsLoaded, _i, _len, _ref;
+        me = $(this);
+        dw = me.width();
+        dh = me.height();
+        sliderHeight = self.sliderHeight;
+        sliderWidth = self.sliderWidth;
+        opening = self.calculated.opening;
+        slidesCount = self.calculated.slidesCount;
+        degs = self.degs(sliderWidth, sliderHeight, _PERCENT_DISTRIBUTION_CLIP);
+        debug('degs', degs);
+        css3 = new Css3Support();
+        transform = css3.supports('transform');
+        imagej = me.find('img').height(sliderHeight);
+        image = imagej.get(0);
+        btnClose = $('<a href="" class="close-btn"></a>');
+        btnClose.click(function(event) {
+          event.preventDefault();
+          event.stopPropagation();
+          self.close();
+          return self.scope.data('currentIndex', 0);
+        });
+        slice = opening + opening * (1 + _PERCENT_DISTRIBUTION_CLIP);
+        clone = null;
+        clone = (function() {
+          var cloned, exists;
+          exists = me.find('.dcontent');
+          cloned = $('<div></div>').addClass('diagonal dcontent clearfix').append('<div class="dcontent-inner"></div>');
+          if (exists.length > 0) {
+            return exists;
+          } else {
+            return cloned;
+          }
+        })();
+        me.append(btnClose);
+        debug("Paginate ", transform, index);
+        if (transform) {
+          init_x = 0;
+          transformDegs = 'skew(-' + degs[1] + 'deg)';
+          tstyle = transform.vendor + 'transform-style';
+          tproperty = transform.property;
+          abs_leftpos = init_x + (opening - opening * degs[1] / 100);
+          rel_leftpos = init_x + (opening * (index + degs[1] / 100));
+          dl = $('<div></div>').addClass('rubber').attr('for', index);
+          dl.css(tproperty, transformDegs).css(tstyle, 'preserve-3d').css({
+            height: sliderHeight * 1.5,
+            width: opening,
+            left: rel_leftpos,
+            position: 'absolute',
+            zIndex: ++zin,
+            top: -50,
+            cursor: 'pointer'
+          });
+          dl.bind('mouseover', function(event) {
+            return me.toggleClass('d-hover');
+          }).click(function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            slides.removeClass('active');
+            me.toggleClass('active');
+            return self.handleClickEvent.apply(self, [event, index, me]);
+          });
+          me.parent().append(dl);
+        } else {
+          items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+          _ref = items.length;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            i = _ref[_i];
+            dl = $('<div></div>');
+            dl.css({
+              width: opening,
+              height: items.length / sliderHeight
+            });
+            me.append(dl);
+          }
+        }
+        if (index === 0) {
+          leftReference = origen_x = index * opening;
+          csstransform = self._conditionalCssLeft(origen_x);
+          me.addClass('first').data('origen_x', origen_x).css(csstransform);
+          hasSettedLeftProp = true;
+        }
+        if (index === slidesCount - 1) {
+          me.addClass('last');
+        }
+        wtotal += dw;
+        if (!hasSettedLeftProp) {
+          leftReference = tleft = index * opening;
+          csstransform = self._conditionalCssLeft(tleft);
+          me.data('origen_x', tleft).css(csstransform);
+        }
+        imagej.hide().load(whenImageIsLoaded = function() {
+          var backgroundCss, classname, cls1, cls2, cls3, destRect, dis, imgdata, justTheImageData, rect, rectData, rectcanvas, sliceImg, sourceRect, xstart;
+          dis = $(this);
+          xstart = leftReference;
+          rectcanvas = new Canvas(slice, sliderHeight, image);
+          sourceRect = {
+            x: 0,
+            y: 0,
+            width: this.width,
+            height: this.height
+          };
+          destRect = {
+            x: -xstart,
+            y: 0,
+            width: sliderWidth,
+            height: sliderHeight
+          };
+          rect = rectcanvas.getRect(sourceRect, destRect);
+          rectData = rectcanvas.getImageData();
+          imgdata = new Canvas(sliderWidth, sliderHeight);
+          justTheImageData = imgdata.drawAndGetImage(image);
+          sliceImg = new Image();
+          sliceImg.onload = function() {
+            var alt, clipMode, clippedImageData, dcanvas, fs;
+            dcanvas = new Canvas(this.width, this.height, this);
+            clipMode = index === 0 ? 'gun' : 'paralellogram';
+            dcanvas.clipImageInDiagonal(clipMode, _PERCENT_DISTRIBUTION_CLIP);
+            fs = parseInt(defaults.fontSize);
+            if ((alt = imagej.attr('alt')) !== null) {
+              dcanvas.canvasApply(labelOpts);
+              if (typeof defaults.titleWritter === 'function') {
+                defaults.titleWritter.apply(dcanvas, [
+                  dcanvas.getContext(), {
+                    title: alt,
+                    degrees: degs,
+                    image: this,
+                    dist: _PERCENT_DISTRIBUTION_CLIP
+                  }
+                ]);
+              } else {
+                dcanvas.drawTitle(alt, 'normal', defaults.fontFamily, fs, this.width * (0.9 - _PERCENT_DISTRIBUTION_CLIP), this.height, -degs[0]);
+              }
+            }
+            clippedImageData = dcanvas.getImage();
+            me.data('clippedImageData', clippedImageData);
+            (function(eindex) {
+              var head, style;
+              style = '<style>';
+              style += '.' + cls1 + '{ ';
+              style += 'background-image: url(' + clippedImageData + ');';
+              style += '}';
+              style += '.' + cls2 + '{ ';
+              style += 'background-image: url(' + justTheImageData + ');';
+              style += '}';
+              style += '.' + cls3 + '{ ';
+              style += 'background-image: url(' + rect + ');';
+              style += '}';
+              style += '</style>';
+              head = $('head:first');
+              return head.append(style);
+            })(index);
+            self.proccessedSlides++;
+            if (self.proccessedSlides === maxSlidesPerPage) {
+              debug("complete");
+              return self.scope.find('.cover').fadeOut("slow", function() {});
+            }
+          };
+          sliceImg.src = rect;
+          $('#im').attr('src', rect);
+          cls1 = 'dbg_' + index;
+          cls2 = 'dbgi_' + index;
+          cls3 = 'dbgc_' + index;
+          classname = [cls1, cls2, cls3];
+          backgroundCss = 'url(' + this.src + ')';
+          clone.addClass(classname[0]);
+          clone.insertAfter(this).css({
+            height: dis.height(),
+            width: dis.width()
+          });
+          me.data('background-origin', this.src);
+          return me.data('background-css-origin', backgroundCss);
+        });
+        return me.css('cursor', 'pointer').css('z-index', zin--).click(function(event) {
+          slides.removeClass('active');
+          me.toggleClass('active');
+          return self.handleClickEvent.apply(self, [event, index, me]);
+        });
+      });
+    };
+
     DiagonalSlider.prototype.open = function(index) {
-      var animateTransition, container, css3supports, current, currentIndex, filterFunction, img, init_x, isClosed, isExternal, isOpen, l, opening, reference, self, slice, slidesCountTransitioning;
+      var animateTransition, container, css3supports, current, currentIndex, filterFunction, img, init_x, isClosed, isExternal, isOpen, l, opening, reference, referenceXhr, self, slice, slidesCountTransitioning;
       self = this;
       isOpen = this.scope.is('.open');
       isClosed = !isOpen;
@@ -445,10 +676,16 @@
       }
       img = current.find('img');
       reference = img.data('ref');
+      referenceXhr = img.data('xhr');
       container = current.find('.dcontent-inner');
-      isExternal = reference ? reference.indexOf('.') > -1 || reference.indexOf('#') > -1 : false;
+      isExternal = reference ? reference.indexOf('.') > -1 || referenceXhr : false;
+      debug(reference, referenceXhr, isExternal, container);
       if (isExternal) {
-        container.empty().load(reference);
+        container.empty().load(reference, function() {
+          if (self.defaults.onXhrLoad) {
+            return self.defaults.onXhrLoad.apply(self.scope, [container, container.html(), reference]);
+          }
+        });
       } else {
         container.empty().append($(reference));
       }
@@ -481,9 +718,7 @@
         if (isntMe) {
           self.scope.trigger('dslider-before-change', [self, ii, transitionSlide]);
           animateTransition(transitionSlide, ii, index, css3supports);
-          debug('isntMe', ii, transitionSlide, slidesCountTransitioning--);
         } else {
-          debug('isMe', ii, transitionSlide, slidesCountTransitioning--);
           for (j = _i = 0; 0 <= l ? _i <= l : _i >= l; j = 0 <= l ? ++_i : --_i) {
             self.scope.removeClass('dbgi_' + j);
           }
@@ -507,29 +742,52 @@
     };
 
     function DiagonalSlider(scope, options) {
-      var computedOpening, css3, defaults, holder, labelOpts, maxSlidesPerPage, opening, self, sliderHeight, sliderWidth, slides, slidesCount, transform, wtotal, zin;
+      var computedOpening, css3, defaults, holder, labelOpts, maxSlidesPerPage, opening, p, paginatorContainer, plink, self, sliderHeight, sliderWidth, slides, slidesCount, transform, wtotal, zin, _i, _ref;
       this.scope = scope;
       self = this;
       self.css3 = new Css3Support();
       defaults = self.defaults = $.extend(this.defaults, options);
+      if (defaults.percentDistribution) {
+        _PERCENT_DISTRIBUTION_CLIP = defaults.percentDistribution;
+      }
       holder = $('ul,ol', this.scope);
-      this.slides = slides = holder.children('li');
-      slidesCount = slides.size();
       maxSlidesPerPage = defaults.maxSlidesPerPage;
-      self.pages = slidesCount / maxSlidesPerPage;
-      debug(self.pages);
-      sliderWidth = defaults.width;
-      sliderHeight = defaults.height;
+      this.allslides = this.slides = slides = holder.children('li');
+      this.calculated.slidesCount = slidesCount = slides.size();
+      this.calculated.slidedUntilIndex = maxSlidesPerPage;
+      slides.slice(maxSlidesPerPage).hide();
+      this.slides = slides = slides.slice(0, maxSlidesPerPage);
+      self.pages = Math.ceil(slidesCount / maxSlidesPerPage);
+      self.currentPage = 0;
+      debug("Pages count " + self.pages);
+      self.sliderWidth = sliderWidth = defaults.width;
+      self.sliderHeight = sliderHeight = defaults.height;
       if (self.defaults.opening === 'auto') {
         computedOpening = _MAX(sliderWidth / slidesCount, sliderWidth / defaults.maxSlidesPerPage);
         self.defaults.opening = computedOpening;
       }
-      opening = defaults.opening;
+      self.calculated.opening = opening = defaults.opening;
       wtotal = 0;
       this.scope.css({
         width: sliderWidth,
         height: sliderHeight
-      }).data('currentIndex', 0);
+      }).data('currentIndex', 0).append('<div class="cover"></div>').append('<div class="paginator"></div>').addClass('closed');
+      /* Pagination*/
+
+      if (self.pages > 0) {
+        paginatorContainer = this.scope.find('.paginator');
+        for (p = _i = 0, _ref = self.pages; 0 <= _ref ? _i <= _ref : _i >= _ref; p = 0 <= _ref ? ++_i : --_i) {
+          plink = $('<a></a>');
+          plink.addClass('page').data({
+            page: p
+          }).attr({
+            'data-index': p
+          }).bind('click', function(event) {
+            return self.paginateTo.apply(self, [event, p]);
+          });
+          paginatorContainer.append(plink);
+        }
+      }
       holder.addClass('clearfix');
       slides.css('width', sliderWidth);
       zin = 100 + slidesCount;
@@ -540,13 +798,13 @@
       css3 = new Css3Support();
       transform = css3.supports('transform');
       slides.each(function(index, el) {
-        var abs_leftpos, btnClose, clone, csstransform, degs, dh, dl, dw, hasSettedLeftProp, i, image, imagej, init_x, items, leftReference, me, origen_x, rel_leftpos, slice, tleft, tproperty, transformDegs, tstyle, whenImageIsLoaded, _i, _len, _ref;
+        var abs_leftpos, btnClose, clone, csstransform, degs, dh, dl, dw, hasSettedLeftProp, i, image, imagej, init_x, items, leftReference, me, origen_x, rel_leftpos, slice, tleft, tproperty, transformDegs, tstyle, whenImageIsLoaded, _j, _len, _ref1;
         me = $(this);
         dw = me.width();
         dh = me.height();
         imagej = me.find('img').height(sliderHeight);
         image = imagej.get(0);
-        btnClose = $('<a href="" class="close-btn"></a>');
+        btnClose = $('<a href="" class="close-btn">X</a>');
         btnClose.click(function(event) {
           event.preventDefault();
           event.stopPropagation();
@@ -554,17 +812,8 @@
           return self.scope.data('currentIndex', 0);
         });
         slice = opening + opening * (1 + _PERCENT_DISTRIBUTION_CLIP);
-        degs = (function(width, height, f) {
-          var ah, angle1, angle2, aw, f1, f2, op;
-          aw = width * f;
-          op = height;
-          ah = Math.sqrt(Math.pow(aw, 2) + Math.pow(op, 2));
-          f1 = op / ah;
-          f2 = aw / ah;
-          angle1 = _RADIAN * _ASIN(f1);
-          angle2 = 90 - angle1;
-          return [angle1, angle2, f1, f2];
-        })(slice, sliderHeight, _PERCENT_DISTRIBUTION_CLIP);
+        degs = self.degs(slice, sliderHeight, _PERCENT_DISTRIBUTION_CLIP);
+        debug('degs', degs);
         clone = null;
         clone = (function() {
           var exists;
@@ -605,9 +854,9 @@
           me.parent().append(dl);
         } else {
           items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
-          _ref = items.length;
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            i = _ref[_i];
+          _ref1 = items.length;
+          for (_j = 0, _len = _ref1.length; _j < _len; _j++) {
+            i = _ref1[_j];
             dl = $('<div></div>');
             dl.css({
               width: opening,
@@ -657,7 +906,6 @@
           sliceImg.onload = function() {
             var alt, clipMode, clippedImageData, dcanvas, fs;
             dcanvas = new Canvas(this.width, this.height, this);
-            debug(degs);
             clipMode = index === 0 ? 'gun' : 'paralellogram';
             dcanvas.clipImageInDiagonal(clipMode, _PERCENT_DISTRIBUTION_CLIP);
             fs = parseInt(defaults.fontSize);
@@ -678,7 +926,7 @@
             }
             clippedImageData = dcanvas.getImage();
             me.data('clippedImageData', clippedImageData);
-            return (function(eindex) {
+            (function(eindex) {
               var head, style;
               style = '<style>';
               style += '.' + cls1 + '{ ';
@@ -694,6 +942,11 @@
               head = $('head:first');
               return head.append(style);
             })(index);
+            self.proccessedSlides++;
+            if (self.proccessedSlides === maxSlidesPerPage) {
+              debug("complete");
+              return self.scope.find('.cover').fadeOut("slow", function() {});
+            }
           };
           sliceImg.src = rect;
           $('#im').attr('src', rect);

@@ -9,9 +9,9 @@
   <body>
     <div id="slider">
       <ul>
-        <li><img id="f1" src="img/iceage.jpg" alt="Title one" data-ref="load.html"/></li>
-        <li>
-            <img id="f2" src="img/up.jpg" alt="Title two" data-ref="load.html"/>
+        <li><img id="f1" src="img/iceage.jpg" alt="Title one" data-ref="load.html" data-xhr="true"/></li>
+        <!--<li>
+            <img id="f2" src="img/up.jpg" alt="Title two" data-ref="load.html" data-xhr="true"/>
               <div class="diagonal dcontent clearfix" style="height: 365px; width: 1100px;">
                 <div class="dcontent-inner">
                   <p>
@@ -19,35 +19,37 @@
                     </p>
                 </div>
               </div>
-        </li>
-        <li><img id="f3" src="img/birds.jpg" alt="Title three" data-ref="load.html"/></li>
-        <li><img id="f4" src="img/up.jpg" alt="Title four" data-ref="load.html"/></li>
-        <li><img id="f1" src="img/iceage.jpg" alt="Title one" data-ref="load.html"/></li>
-        <li><img id="f3" src="img/birds.jpg" alt="Title three" data-ref="load.html"/></li>
-        <li><img id="f5" src="img/iceage.jpg" alt="Title five" data-ref="load.html"/></li>
-        <li><img id="f3" src="img/birds.jpg" alt="Title three" data-ref="load.html"/></li>
-        <li><img id="f4" src="img/up.jpg" alt="Title four" data-ref="load.html"/></li>
-        <li><img id="f5" src="img/iceage.jpg" alt="Title five" data-ref="load.html"/></li>
-        <li><img id="f3" src="img/birds.jpg" alt="Title three" data-ref="load.html"/></li>
-        <li><img id="f4" src="img/up.jpg" alt="Title four" data-ref="load.html"/></li>
-        <li><img id="f1" src="img/iceage.jpg" alt="Title one" data-ref="load.html"/></li>
-        <li><img id="f3" src="img/birds.jpg" alt="Title three" data-ref="load.html"/></li>
-        <li><img id="f5" src="img/iceage.jpg" alt="Title five" data-ref="load.html"/></li>
-        <li><img id="f3" src="img/birds.jpg" alt="Title three" data-ref="load.html"/></li>
-        <li><img id="f4" src="img/up.jpg" alt="Title four" data-ref="load.html"/></li>
-        <li><img id="f5" src="img/iceage.jpg" alt="Title five" data-ref="load.html"/></li>
+        </li>-->
+        <li><img id="f3" src="img/birds.jpg" alt="Title three" data-ref="load.html" data-xhr="true"/></li>
+        <li><img id="f4" src="img/up.jpg" alt="Title four" data-ref="load.html" data-xhr="true"/></li>
+        <li><img id="f1" src="img/iceage.jpg" alt="Title one" data-ref="load.html" data-xhr="true"/></li>
+        <li><img id="f3" src="img/birds.jpg" alt="Title three" data-ref="load.html" data-xhr="true"/></li>
+        <li><img id="f5" src="img/iceage.jpg" alt="Title five" data-ref="load.html" data-xhr="true"/></li>
+        <li><img id="f3" src="img/birds.jpg" alt="Title three" data-ref="load.html" data-xhr="true"/></li>
+        <li><img id="f4" src="img/up.jpg" alt="Title four" data-ref="load.html" data-xhr="true"/></li>
+        <li><img id="f5" src="img/iceage.jpg" alt="Title five" data-ref="load.html" data-xhr="true"/></li>
+        <li><img id="f3" src="img/birds.jpg" alt="Title three" data-ref="load.html" data-xhr="true"/></li>
+        <li><img id="f4" src="img/up.jpg" alt="Title four" data-ref="load.html" data-xhr="true"/></li>
+        <li><img id="f1" src="img/iceage.jpg" alt="Title one" data-ref="load.html" data-xhr="true"/></li>
+        <li><img id="f3" src="img/birds.jpg" alt="Title three" data-ref="load.html" data-xhr="true"/></li>
+        <li><img id="f5" src="img/iceage.jpg" alt="Title five" data-ref="load.html" data-xhr="true"/></li>
+        <li><img id="f3" src="img/birds.jpg" alt="Title three" data-ref="load.html" data-xhr="true"/></li>
+        <li><img id="f4" src="img/up.jpg" alt="Title four" data-ref="load.html" data-xhr="true"/></li>
+        <li><img id="f5" src="img/iceage.jpg" alt="Title five" data-ref="load.html" data-xhr="true"/></li>
       </ul>
     </div>
-    <!--<img id="f1" src="img/birds.jpg" alt="Title one" data-ref="load.html" width="1100" height="365"/>
+    <!--<img id="f1" src="img/birds.jpg" alt="Title one" data-ref="load.html" data-xhr="true" width="1100" height="365"/>
     <img id="im" />
     <div id="test" class="dbgc_1" style="width:1100px; height:365px; background-position: center center;" ></div>-->
     <script>
+      
       var slider;
+      
       $(document).ready(function(){
-        console.log('doc ready')
-        slider = $('#slider').diagonalSlider({width: 1100, height: 365, titleWritter: function(contextOrigen, data){
-            
-            var canvasWritter = this;
+
+        function myTitleWritter(contextOrigen, data){
+
+          var canvasWritter = this;
             var words = data.title.split(/\s+/);
 
             var fontFamily = 'Lato';
@@ -55,7 +57,7 @@
             var fontStyle = 'normal';
             var fontDec = fontStyle + ' ' + fontSize + "px " + fontFamily
             var fontColor = '#DDDDDD';
-            var fontColor2 = '#EDEDED';
+            var fontColor2 = 'ff00FF';
 
             var initx = data.image.width*(0.8-data.dist);
 
@@ -72,11 +74,22 @@
               , function(context, drawResult){
 
                   context.fillStyle = fontColor2;
-                  context.fillText(" Best", initx + drawResult.dimension.width, data.image.height);
+                  context.fillText(" "+words.join(" "), initx + drawResult.dimension.width, data.image.height);
 
               });
 
-        }})
+        };
+
+        slider = $('#slider').diagonalSlider({width: 1100
+          , height: 365
+          , titleWritter: myTitleWritter
+          , percentDistribution: 0.6
+          , maxSlidesPerPage: 6
+          , onXhrLoad: function(container, content){
+              console.log(container, content);
+          }
+        });
+
       })
     </script>
   </body>

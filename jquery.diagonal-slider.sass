@@ -1,3 +1,8 @@
+$themeColor: #b1001c
+$themeDarkColor : darken($themeColor, 10)
+
+$paginatorItemWidth : 12px
+
 .animate
 	-webkit-transition: -webkit-transform 1s ease-out
 	-moz-transition: -moz-transform 1s ease-out
@@ -30,6 +35,40 @@
 	*
 		margin : 0
 		padding : 0
+	.paginator
+		
+		position: absolute
+		bottom: 0px
+		height: 30px
+		width: 100%
+		background: rgba(255, 255, 255, 0.5)
+		z-index: 12
+		text-align: center
+		bottom: 0px
+
+		-webkit-transition: bottom 0.6s ease-out
+		-moz-transition: bottom 0.6s ease-out
+		-ms-transition: bottom 0.6s ease-out
+		-o-transition: bottom 0.6s ease-out
+		transition: bottom 0.6s ease-out
+
+		.page
+			margin-top: $paginatorItemWidth/4
+			font-size: $paginatorItemWidth
+			position: relative
+			width: $paginatorItemWidth
+			height: $paginatorItemWidth
+			line-height: 1.2em
+			display: inline-block
+			margin-right: $paginatorItemWidth/4
+			margin-left: $paginatorItemWidth/4
+			-webkit-border-radius: $paginatorItemWidth * 2
+			-moz-border-radius: $paginatorItemWidth * 2
+			-o-border-radius: $paginatorItemWidth * 2
+			border-radius: $paginatorItemWidth * 2
+			background-color: $themeColor
+			background-color: rgba($themeColor, 0.8)
+			cursor: pointer
 	.dcontent-inner
 		padding: 10px		
 		display: none
@@ -46,11 +85,23 @@
 	.rubber
 		//box-shadow: 10px 42px rgba(0, 0, 0, 0.2)
 		display: block
+	.cover
+		background: $themeColor
+		position: absolute
+		top: 0px
+		left: 0px
+		width: 100%
+		height: 100%
+		z-index: 200
 .dslider
 	&.open
 		.rubber
 			display: none
 			visibility: hidden
+		.paginator
+			display: none
+			visibility: hidden
+			bottom: -40px
 	.dcontent, .dcontent-inner
 		font-size: 12px
 		background-repeat: no-repeat
@@ -79,6 +130,7 @@
 		left: 0px
 		height: 100%
 		font-size: 0
+		z-index: 9
 	li
 		float: left
 		list-style: none

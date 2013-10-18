@@ -36,11 +36,12 @@ class Css3Support
 	vendors : ['-webkit-','-o-','-ms-','-moz-','']
 	### Css3 quick support check###
 	constructor : () ->
-		el = if @testElement then @testElement else (@testElement = document.createElement('p'))
+		el = if @testElement then @testElement else(@testElement = document.createElement('p'))
 		document.body.insertBefore(el, null) 
 	supports: (key) ->
 		for v, e in @vendors
-			return {vendor: v, property: v+key} if window.getComputedStyle(@testElement).getPropertyValue(v+key)
+			if window.getComputedStyle(@testElement).getPropertyValue(v+key)
+				return {vendor: v, property: v+key}
 		false
 	getCssPropertyVendor:(baseProperty, value) ->
 		i = {}
@@ -69,7 +70,14 @@ class Canvas
 
 	getRect: (rect, crop) ->
 		@context.save()
-		@context.drawImage(@image, rect.x, rect.y, rect.width, rect.height, crop.x, crop.y, crop.width, crop.height)
+		@context.drawImage(@image, rect.x
+			, rect.y
+			, rect.width
+			, rect.height
+			, crop.x
+			, crop.y
+			, crop.width
+			, crop.height)
 		result = @getImage()
 		@context.restore()
 		result
@@ -78,7 +86,15 @@ class Canvas
 		@canvas.toDataURL(format)
 
 	drawAndGetImage: (image) ->
-		@context.drawImage(image, 0, 0, image.width, image.height, 0, 0, @w(), @h())
+		@context.drawImage(image
+			, 0
+			, 0
+			, image.width
+			, image.height
+			, 0
+			, 0
+			, @w()
+			, @h())
 		@getImage()
 
 	imageToDataUrl : (image, w = image.width, h = image.height) ->
@@ -90,7 +106,7 @@ class Canvas
 			context[e] = i for e, i of obj
 		@
 
-	drawTitle: (text, bold, font, size, x=0, y=0, angle=0, afterDraw = () -> true)->
+	drawTitle: (text, bold, font, size, x=0, y=0, angle=0, afterDraw = () -> 1)->
 
 		#metric will receive the measures of the text
 		metric = @context.measureText(text, bold, font, size) 
@@ -183,19 +199,36 @@ class Canvas
 		@context.clip()
 
 		#@context.drawImage(@image, 0, 0)
-
 		#imageObj, sourceX, sourceY, sourceWidth, sourceHeight, destX, destY, destWidth, destHeight
 		try
-			@context.drawImage(@image, 0, 0, @image.width, @image.height, 0, 0, @w(), @h())
+			@context.drawImage(@image
+				, 0
+				, 0
+				, @image.width
+				, @image.height
+				, 0
+				, 0
+				, @w()
+				, @h())
 		catch e
 			debug(e, e.message, @image)
 
 		@context.restore()
 		@
 
-
 class DiagonalSlider
+	
 	canvas: null
+
+	calculated: 
+		a :0
+
+	pages : 0
+	currentPage : 0
+	proccessedSlides : 0
+
+	sliderWidth:0
+	sliderHeight:0
 	
 	defaults:
 		slideOpening: 'full' #[full, partial]
@@ -213,33 +246,27 @@ class DiagonalSlider
 
 		self = @
 
-		self.scope
-			.find('.rubber').show()
-
 		currentIndex = self.scope.data('currentIndex')
 
-		supportTransform = self.css3.supports('transform')
+		supportTransform = typeof self.css3.supports('transform') is 'object'
 
 		slides = self.slides
-
-		#slides.sort( (i) -> i is currentIndex )
-
-		#if $filter isnt null
-		#	slides = slides.filter( (index) -> $filter(index, @) )
 
 		slides.removeClass('active')
 
 		transitionCntSlide = slides.length		
 
 		onSlideTransitionEnds = (current = transitionCntSlide) ->
-			debug('onSlideTransitionEnds', current)
+			debug('onSlideTransitionEnds', current, self.scope)
 			if current is 0 # reset ends successfully
 				self.scope
-					.removeClass('open')
-					.addClass('closed')
+					.toggleClass('closed')
+					.toggleClass('open')
 					.data('currentIndex', -1)
+					.find('.rubber').show()
 
-		onSlideTransitionEnds()
+		#onSlideTransitionEnds()
+		debug('reset', slides, supportTransform, transitionCntSlide)
 
 		slides.each( (i, slideElement) ->
 
@@ -269,6 +296,7 @@ class DiagonalSlider
 						transitionCntSlide--
 						onSlideTransitionEnds()
 						slide.removeClass('animate')
+
 						if callbackEach
 							callbackEach.apply(self, [i, slide])
 						@
@@ -288,14 +316,11 @@ class DiagonalSlider
 		)
 		
 		@
-
 	slidesgt: (i) -> @slides.slice(++i)
 	slideslt: (i) -> @slides.slice(0, --i)
 	getSlides: (i) -> @slides
-
 	restore: (c = null) -> @reset(c)
 	close: (options, c = null) -> @reset(c)
-
 	_parseCssLeft: (el, property = 'transform') ->
 		css3 =  new Css3Support()
 		cssKey = css3.supports(property)
@@ -307,13 +332,298 @@ class DiagonalSlider
 			value = parseInt($(el).css('left'))
 		value
 
+	degs : (w , h , f) ->
+		aw = w * f
+		op = h
+		ah = Math.sqrt(Math.pow(aw,2) + Math.pow(op,2))
+		f1 = op/ah
+		f2 = aw/ah		
+		angle1 = _RADIAN * _ASIN(f1)
+		angle2 = 90 - angle1
+		[angle1, angle2, f1, f2]
+
 	_conditionalCssLeft: (x) ->
 		css3 =  new Css3Support()
 		property = 'transform'
 		css3supports = css3.supports(property)
-		transform = if css3supports then css3.getCssPropertyVendor(property, "translate3d(" + x + "px, " + 0 + ", 0 )") else {x: left}
+		transform = if css3supports then css3.getCssPropertyVendor(property
+			, "translate3d(" + x + "px, " + 0 + ", 0 )") else {x: left}
 		transform
 
+	paginateTo: ($event, $page) ->
+		self = @
+
+		page = $($event.target).data('page')
+
+		if page is self.currentPage
+			return false
+
+		cover = self.scope.find('.cover')
+		cover
+			.fadeIn()
+
+		defaults = self.defaults
+		from = self.defaults.maxSlidesPerPage * page
+		untill = from + self.defaults.maxSlidesPerPage
+		maxSlidesPerPage = defaults.maxSlidesPerPage
+		leftReference = 0
+		
+		labelOpts =
+			font : 'normal ' + defaults.fontSize + ' ' + defaults.fontFamily
+			fillStyle : defaults.fontColor
+
+		wtotal = 0
+		zin = 0
+		
+		slides = self.allslides
+		slides = slides.slice(from, untill)
+		slides.find(':visible').hide()
+
+		self.proccessedSlides = 0
+
+		debug('paginateTo', page + " current is " + self.currentPage)
+
+		slides.each( (index, el) ->
+			
+			me = $(@)
+			dw = me.width()
+			dh = me.height()
+
+			sliderHeight = self.sliderHeight
+			sliderWidth = self.sliderWidth
+			opening = self.calculated.opening
+			slidesCount = self.calculated.slidesCount
+			degs = self.degs(sliderWidth, sliderHeight, _PERCENT_DISTRIBUTION_CLIP)
+
+			debug('degs', degs)
+
+			css3 = new Css3Support()
+			transform = css3.supports('transform')
+
+			imagej = me.find('img').height(sliderHeight)
+			image = imagej.get(0)
+
+			btnClose = $('<a href="" class="close-btn"></a>')
+			btnClose
+				.click( (event) ->
+					event.preventDefault()
+					event.stopPropagation()
+					self.close()
+					self.scope.data('currentIndex', 0)
+				)
+
+			#slice = opening + opening*(1+degs[3])
+			#how big will be the rubber and the sliced/cropped image
+			slice = opening + opening*(1+_PERCENT_DISTRIBUTION_CLIP)
+
+			clone = null
+			clone  = do () ->
+				exists = me.find('.dcontent')
+				cloned = $('<div></div>')
+					.addClass('diagonal dcontent clearfix')
+					.append('<div class="dcontent-inner"></div>')
+				if exists.length > 0 then exists else cloned
+			
+			me.append(btnClose)
+
+			debug("Paginate ", transform, index)
+
+			if transform
+				
+				init_x = 0
+				transformDegs = 'skew(-' + degs[1] + 'deg)'
+				tstyle = transform.vendor + 'transform-style'
+				tproperty = transform.property
+
+				#absolute
+				abs_leftpos = init_x + (opening - opening * degs[1]/100)
+				#relative
+				rel_leftpos = init_x + (opening * (index+degs[1]/100))
+
+				dl = $('<div></div>').addClass('rubber').attr('for', index)
+				
+				dl					
+					.css(tproperty,transformDegs)
+					.css(tstyle,'preserve-3d')
+					.css					
+						height: sliderHeight * 1.5
+						width: opening
+						#background: 'rgba(255, 255, 255, 0.5)'
+						left: rel_leftpos
+						position: 'absolute'
+						zIndex: ++zin
+						top: -50
+						cursor: 'pointer'
+
+				dl
+					.bind('mouseover', (event) ->
+						me.toggleClass('d-hover')
+						#self.handleClickEvent.apply(self, [event, index, me])
+					)
+					.click((event) ->
+						event.preventDefault()
+						event.stopPropagation()
+						slides.removeClass('active')
+						me.toggleClass('active')
+						#debug(index)
+						self.handleClickEvent.apply(self, [event, index, me])
+					)
+				me.parent().append(dl)
+			else
+				items = [1..20]
+				for i in items.length
+					dl = $('<div></div>')
+					dl.css
+						width: opening
+						height: items.length / sliderHeight
+					
+					me.append(dl)
+
+			
+
+			if index is 0
+				leftReference = origen_x = index * opening
+				csstransform = self._conditionalCssLeft(origen_x)
+				me
+					.addClass('first')
+					.data('origen_x', origen_x)
+					.css(csstransform)
+				
+				hasSettedLeftProp = true
+
+			if index is slidesCount-1
+				me.addClass('last')
+
+			wtotal+= dw
+
+			if not hasSettedLeftProp
+
+				leftReference = tleft = index * opening
+				csstransform = self._conditionalCssLeft(tleft)
+				me
+					.data('origen_x', tleft)
+					.css(csstransform)
+
+			imagej.hide().load( whenImageIsLoaded = () ->
+				
+				dis = $(@)
+				
+				xstart = leftReference
+				
+				rectcanvas = new Canvas(slice, sliderHeight, image)
+
+				#imageObj, sourceX, sourceY, sourceWidth, sourceHeight, destX, destY, destWidth, destHeight
+				sourceRect = {x:0,y:0,width:@.width,height:@.height}
+				destRect = {x:-xstart,y:0,width:sliderWidth,height:sliderHeight}
+				
+				rect = rectcanvas.getRect(sourceRect, destRect)
+				rectData = rectcanvas.getImageData()
+
+				imgdata = new Canvas(sliderWidth, sliderHeight)
+				justTheImageData = imgdata.drawAndGetImage(image)
+
+				sliceImg = new Image()
+				sliceImg.onload = () ->
+					
+					dcanvas = new Canvas(@.width, @.height, @)
+					#dcanvas.putImageData(rectData)
+					
+					#justTheImageData = dcanvas.imageToDataUrl(@, sliderWidth, sliderHeight)
+					
+					#debug(degs)
+
+					clipMode = if index is 0 then 'gun' else 'paralellogram'
+					
+					dcanvas.clipImageInDiagonal(clipMode, _PERCENT_DISTRIBUTION_CLIP)				
+
+					fs = parseInt(defaults.fontSize)
+				
+					if (alt = imagej.attr('alt')) != null
+						dcanvas
+							.canvasApply(labelOpts)
+						if typeof(defaults.titleWritter) is 'function'
+							defaults.titleWritter.apply(dcanvas, [dcanvas.getContext(), {title: alt, degrees: degs, image: @, dist: _PERCENT_DISTRIBUTION_CLIP}])
+						else
+							dcanvas
+								.drawTitle(alt, 'normal', defaults.fontFamily, fs, @.width*(0.9-_PERCENT_DISTRIBUTION_CLIP), @.height, -degs[0] )
+
+					clippedImageData = dcanvas.getImage()
+
+					me.data('clippedImageData', clippedImageData)
+
+					do ( eindex = index ) -> 
+					
+						style = '<style>'
+						
+						style+= '.' + cls1 + '{ ';
+						style+= 'background-image: url(' + clippedImageData  + ');';
+						#style+= 'background-position: -' + leftReference  + 'px 0px;';
+						style+= '}'
+
+						style+= '.' + cls2 + '{ ';
+						style+= 'background-image: url(' + justTheImageData  + ');';
+						#style+= 'background-position: -' + leftReference  + 'px 0px;';
+						style+= '}'
+
+						style+= '.' + cls3 + '{ ';
+						style+= 'background-image: url(' + rect  + ');';
+						#style+= 'background-position: -' + leftReference  + 'px 0px;';
+						style+= '}'
+
+						style+= '</style>'
+
+						head = $('head:first')
+						head.append(style)
+
+					self.proccessedSlides++
+
+					if self.proccessedSlides is maxSlidesPerPage
+						debug("complete")
+						self.scope
+							.find('.cover')
+							.fadeOut( "slow",  () ->
+
+							)
+
+
+				sliceImg.src = rect
+
+				$('#im').attr('src',rect)
+
+				cls1 = 'dbg_' + index
+				cls2 = 'dbgi_' + index
+				cls3 = 'dbgc_' + index
+				
+				classname = [cls1, cls2, cls3]
+
+				backgroundCss =  'url(' + @.src  + ')'
+
+				#me.addClass(classname)
+				clone.addClass(classname[0])
+				clone					
+					.insertAfter(@)
+					.css
+						#background : tiltCss
+						height : dis.height()
+						width : dis.width()
+				#me.css
+				#	background: backgroundCss				
+
+				me.data('background-origin', @.src)
+				me.data('background-css-origin', backgroundCss)
+			)
+
+			me
+				.css('cursor', 'pointer')
+				.css('z-index', zin-- )
+				.click((event) ->
+					slides.removeClass('active')
+					me.toggleClass('active')
+					self.handleClickEvent.apply(self, [event, index, me])
+				)
+
+		)
+		
 	open: (index) ->
 
 		self = @
@@ -345,11 +655,17 @@ class DiagonalSlider
 		img = current.find('img')
 
 		reference = img.data('ref')
+		referenceXhr = img.data('xhr')
 		container = current.find('.dcontent-inner');
-		isExternal = if reference then reference.indexOf('.')>-1 or reference.indexOf('#')>-1 else false
+		isExternal = if reference then reference.indexOf('.')>-1 or referenceXhr else false
+
+		debug(reference, referenceXhr, isExternal, container)
 		
 		if isExternal
-			container.empty().load(reference)
+			container.empty().load(reference, () ->
+				if self.defaults.onXhrLoad
+					self.defaults.onXhrLoad.apply(self.scope, [container, container.html(), reference])
+			)
 		else
 			container.empty().append($(reference))
 
@@ -402,9 +718,9 @@ class DiagonalSlider
 				#for j in [0..l]
 				#	self.scope.removeClass('dbgi_' + j )
 
-				debug('isntMe', ii, transitionSlide, slidesCountTransitioning--)
+				#debug('isntMe', ii, transitionSlide, slidesCountTransitioning--)
 			else
-				debug('isMe', ii, transitionSlide, slidesCountTransitioning--)
+				#debug('isMe', ii, transitionSlide, slidesCountTransitioning--)
 
 				for j in [0..l]
 					self.scope.removeClass('dbgi_' + j )
@@ -430,11 +746,9 @@ class DiagonalSlider
 		
 
 		@
-
 	handleClickEvent: (event, index, ref) ->
 		@open(index)
 		true
-	
 	constructor: (@scope, options) ->
 
 		self = @
@@ -443,21 +757,34 @@ class DiagonalSlider
 
 		defaults = self.defaults = $.extend(@defaults, options)
 
+		if(defaults.percentDistribution)
+			_PERCENT_DISTRIBUTION_CLIP = defaults.percentDistribution
+
 		holder = $('ul,ol', @scope)
-		@slides = slides = holder.children('li')
-		slidesCount = slides.size()
 		maxSlidesPerPage = defaults.maxSlidesPerPage
 
-		self.pages = slidesCount/maxSlidesPerPage
-		debug(self.pages)
+		@allslides = @slides = slides = holder.children('li')
 
-		sliderWidth = defaults.width
-		sliderHeight = defaults.height		
+		@calculated.slidesCount = slidesCount = slides.size()
+
+		@calculated.slidedUntilIndex = maxSlidesPerPage
+
+		slides.slice(maxSlidesPerPage).hide()
+
+		@slides = slides = slides.slice(0, maxSlidesPerPage)
+
+		self.pages = Math.ceil(slidesCount/maxSlidesPerPage)
+		self.currentPage = 0
+
+		debug("Pages count " + self.pages)
+
+		self.sliderWidth = sliderWidth = defaults.width
+		self.sliderHeight = sliderHeight = defaults.height
 
 		if self.defaults.opening is 'auto'
 			computedOpening = _MAX(sliderWidth/slidesCount, sliderWidth/defaults.maxSlidesPerPage)
 			self.defaults.opening = computedOpening
-		opening = defaults.opening
+		self.calculated.opening = opening = defaults.opening
 
 		wtotal = 0
 
@@ -466,6 +793,23 @@ class DiagonalSlider
 				width : sliderWidth
 				height : sliderHeight
 			.data('currentIndex', 0)
+			.append('<div class="cover"></div>')
+			.append('<div class="paginator"></div>')
+			.addClass('closed')
+
+		### Pagination ###
+
+		if self.pages > 0
+			paginatorContainer = @scope.find('.paginator')
+			for p in [0..self.pages]
+				plink = $('<a></a>')
+				plink
+					.addClass('page')
+					.data({ page: p})
+					.attr({ 'data-index': p})
+					.bind('click', (event) -> self.paginateTo.apply(self, [event, p]) )
+				paginatorContainer.append(plink)
+
 
 		holder.addClass('clearfix')
 		
@@ -488,7 +832,7 @@ class DiagonalSlider
 			imagej = me.find('img').height(sliderHeight)
 			image = imagej.get(0)
 
-			btnClose = $('<a href="" class="close-btn"></a>')
+			btnClose = $('<a href="" class="close-btn">X</a>')
 			btnClose
 				.click( (event) ->
 					event.preventDefault()
@@ -501,24 +845,8 @@ class DiagonalSlider
 			#how big will be the rubber and the sliced/cropped image
 			slice = opening + opening*(1+_PERCENT_DISTRIBUTION_CLIP)
 
-			#Trigo
-			#degs = do (width = sliderWidth, height = sliderHeight, f = _PERCENT_DISTRIBUTION_CLIP) ->
-			degs = do (width = slice, height = sliderHeight, f = _PERCENT_DISTRIBUTION_CLIP) ->
-
-				aw = width * f
-				op = height
-				ah = Math.sqrt(Math.pow(aw,2) + Math.pow(op,2))
-
-				f1 = op/ah
-				f2 = aw/ah
-				
-				angle1 = _RADIAN * _ASIN(f1)
-				#angle2 = _RADIAN * _ASIN(f2)
-				angle2 = 90 - angle1
-
-				[angle1, angle2, f1, f2]
-
-			#debug('degs', slice, degs)
+			degs = self.degs(slice, sliderHeight, _PERCENT_DISTRIBUTION_CLIP)
+			debug('degs', degs)
 
 			clone = null
 			clone  = do () ->
@@ -631,7 +959,7 @@ class DiagonalSlider
 					#dcanvas.putImageData(rectData)
 					
 					#justTheImageData = dcanvas.imageToDataUrl(@, sliderWidth, sliderHeight)
-					debug(degs)
+					#debug(degs)
 
 					clipMode = if index is 0 then 'gun' else 'paralellogram'
 					
@@ -675,6 +1003,17 @@ class DiagonalSlider
 
 						head = $('head:first')
 						head.append(style)
+
+					self.proccessedSlides++
+
+					if self.proccessedSlides is maxSlidesPerPage
+						debug("complete")
+						self.scope
+							.find('.cover')
+							.fadeOut( "slow",  () ->
+
+							)
+
 
 				sliceImg.src = rect
 
